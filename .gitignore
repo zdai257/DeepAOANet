@@ -1,6 +1,3 @@
 __pycache__/
 .ipynb_checkpoints/
-data/*.bag
-data_0106/*.bag
-data_0506/*.bag
-data_noisy0/
+*.bag
