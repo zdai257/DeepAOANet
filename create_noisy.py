@@ -1,11 +1,26 @@
 import os
 from os.path import join
+import argparse
 import rospy
 from math import *
 import numpy as np
 from std_msgs.msg import String, Empty, Header, Float32, Float32MultiArray, MultiArrayDimension
 from pyargus import directionEstimation as de
 
+
+parser = argparse.ArgumentParser(description='Specify ROS create_noisy params')
+parser.add_argument('--sigma', type=str, required=False, help='Specify SIGMA of AWGN to IQ_samples')
+parser.add_argument('--mean', type=str, required=False, help='Specify MEAN of AWGN to IQ_samples')
+args = parser.parse_args()
+if args.sigma is not None:
+    gauss_sigma = float(args.sigma)
+else:
+    gauss_sigma = 1e-5
+if args.mean is not None:
+    gauss_mean = float(args.mean)
+else:
+    gauss_mean = 0.0
+print("Sigma of AWGN equals = ", gauss_sigma)
 
 def callback(msg):
     data = Float32MultiArray()
@@ -40,7 +55,7 @@ def callback(msg):
     N = msg.layout.dim[1].size
     len = M * N * 2
 
-    noise = np.random.normal(0, 0.001, len)
+    noise = np.random.normal(gauss_mean, gauss_sigma, len)
     new_msg.data = msg.data + noise
 
     new_samples = np.asarray(new_msg.data).reshape(M, N, 2)
