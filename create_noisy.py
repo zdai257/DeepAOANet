@@ -20,7 +20,11 @@ if args.mean is not None:
     gauss_mean = float(args.mean)
 else:
     gauss_mean = 0.0
-print("Sigma of AWGN equals = ", gauss_sigma)
+
+
+gauss_sigma_dict = {'1e_5': 1e-5, '5e_5': 5e-5, '1e_4': 1e-4, '5e_4': 5e-4}
+print("Sigma of AWGN equals = ", gauss_sigma_dict.keys())
+
 
 def callback(msg):
     data = Float32MultiArray()
@@ -55,27 +59,32 @@ def callback(msg):
     N = msg.layout.dim[1].size
     len = M * N * 2
 
-    noise = np.random.normal(gauss_mean, gauss_sigma, len)
-    new_msg.data = msg.data + noise
+    for idx, (key, noise_sigma) in enumerate(gauss_sigma_dict.items()):
+        noise = np.random.normal(gauss_mean, noise_sigma, len)
+        new_msg.data = msg.data + noise
 
-    new_samples = np.asarray(new_msg.data).reshape(M, N, 2)
-    data_real = new_samples[:, :, 0]
-    data_imag = new_samples[:, :, 1]
-    iq_samples = data_real + 1j*data_imag
+        new_samples = np.asarray(new_msg.data).reshape(M, N, 2)
+        data_real = new_samples[:, :, 0]
+        data_imag = new_samples[:, :, 1]
+        iq_samples = data_real + 1j * data_imag
 
-    # Get new R and publish
-    new_R = de.corr_matrix_estimate(iq_samples.T, imp="fast")
-    new_R_real = new_R.real
-    new_R_imag = new_R.imag
+        # Get new R and publish
+        new_R = de.corr_matrix_estimate(iq_samples.T, imp="fast")
+        new_R_real = new_R.real
+        new_R_imag = new_R.imag
 
-    data_arr = np.append(new_R_real.reshape(M0, M0, 1), new_R_imag.reshape(M0, M0, 1), axis=2)
-    data_lst = list(data_arr.ravel())
-    data.data = data_lst
-    pub.publish(data)
+        data_arr = np.append(new_R_real.reshape(M0, M0, 1), new_R_imag.reshape(M0, M0, 1), axis=2)
+        data_lst = list(data_arr.ravel())
+        data.data = data_lst
+        pub_dict[key].publish(data)
 
 
 rospy.init_node('noisy_creator', anonymous=True)
-pub = rospy.Publisher('/kerberos/newR', Float32MultiArray, queue_size=10)
+#pub = rospy.Publisher('/kerberos/newR', Float32MultiArray, queue_size=10)
+pub_dict = {}
+for idx, (key, noi) in enumerate(gauss_sigma_dict.items()):
+    pub = rospy.Publisher('/kerberos/R' + str(key), Float32MultiArray, queue_size=10)
+    pub_dict[key] = pub
 
 topic = '/kerberos/iq_arr'
 rospy.Subscriber(topic, Float32MultiArray, callback)
