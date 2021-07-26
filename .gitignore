@@ -6,4 +6,5 @@ dataset1/
 dataset2/
 data_0106/
 data_0506/
-
+Data/
+*log_long.csv
