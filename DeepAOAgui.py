@@ -1,6 +1,7 @@
 import os
 from os.path import join
 import argparse
+import time
 import rospy
 from math import *
 import numpy as np
@@ -9,21 +10,28 @@ import pickle
 from pyqtgraph.Qt import QtGui, QtCore
 import pyqtgraph as pg
 import keras
+from keras import backend as K
+
+os.environ['KERAS_BACKEND']='tensorflow'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+#K.set_learning_phase(0)
 
 
 class DeepAOANet(object):
     def __init__(self):
-        self.aoa = 0.
+        self.aoa = None
         self.data = None
         self.rdy_flag = False
+        self.inp = {0: None, -1: None, -2: None}
 
-        pkl_filename = "encoder_fc_tuple.pkl"
+        pkl_filename = "LSTM-AE-4FC_X_105.pkl"
         with open(join('checkpoints', pkl_filename), 'rb') as a_file:
-            encoder, model_4 = pickle.load(a_file)
-        encoder.summary()
-        model_4.summary()
-        self.encoder, self.model_4 = encoder, model_4
+            model_encoder_fc = pickle.load(a_file)
+        model_encoder_fc.summary()
 
+        self.model = model_encoder_fc
+        self.sess = K.get_session()
+        '''
         ### START QtApp #####
         app = QtGui.QApplication([])
         win = pg.GraphicsWindow(title="AOA Compass")  # creates a window
@@ -33,8 +41,9 @@ class DeepAOANet(object):
         windowWidth = 500  # width of the window displaying the curve
         self.Xm = np.linspace(0, 0, windowWidth)  # create array that will contain the relevant time series
         self.ptr = -windowWidth  # set first x position
+        '''
 
-
+    '''
     def update(self):
         #global curve, ptr, Xm
         self.Xm[:-1] = self.Xm[1:]  # shift data in the temporal mean 1 sample left
@@ -43,23 +52,44 @@ class DeepAOANet(object):
         self.curve.setData(self.Xm)  # set the curve with this data
         self.curve.setPos(self.ptr, 0)  # set x position in the graph to 0
         QtGui.QApplication.processEvents()  # you MUST process the plot now
+    '''
 
     def infer(self):
-        out1 = self.encoder.predict(self.data)
-        out2 = self.model_4.predict(out1)
 
-        # Normalize output
+        if any(val is None for val in self.inp.values()):
+            self.aoa = None
+            print("t < 3 Not ready for Inference.")
+        else:
+            new_inp = np.zeros((1, 3, 20), dtype='float32')
+            new_inp[0, 0] = self.inp[-2]
+            new_inp[0, 1] = self.inp[-1]
+            new_inp[0, 2] = self.inp[0]
 
-        self.aoa = out2
+            out = self.sess.run([self.model.outputs],
+                                feed_dict={self.model.inputs[0]: new_inp})
+
+            # print(out.shape)
+            # Normalize output
+
+            self.aoa = out
 
     def data_ready(self):
         if self.rdy_flag:
-            self.rdy_flag = False
-            return True
+            ret = True
         else:
-            return False
+            ret = False
+
+        self.reset_flag()
+        return ret
+
+    def set_flag(self):
+        self.rdy_flag = True
+
+    def reset_flag(self):
+        self.rdy_flag = False
 
     def callback(self, msg):
+        #print("\ncallback!")
         # Parse received 'msg'
         M = msg.layout.dim[0].size
         N = msg.layout.dim[1].size
@@ -79,25 +109,44 @@ class DeepAOANet(object):
         z = b / np.linalg.norm(b)
 
         # Buffer previous 'z' to make Time Series
+        # ALSO Filter out Noises!
 
         self.data = z
-        self.rdy_flag = True
+
+        # Circular buffer
+        self.inp[-2] = self.inp[-1]
+        self.inp[-1] = self.inp[0]
+        self.inp[0] = self.data
+
+        self.set_flag()
 
 
 if __name__ == "__main__":
-    AOA = DeepAOANet
+    AOA = DeepAOANet()
 
     rospy.init_node('DeepAOAgui', anonymous=True)
     rospy.Subscriber('/kerberos/r', Float32MultiArray, AOA.callback)
 
     while not rospy.is_shutdown():
-        if AOA.data_ready:
+        if AOA.data_ready():
+            start_t = time.time()
             # Inference
-            print(AOA.aoa)
-            # GUI Display
-            AOA.update()
+            print("\nStart Infer")
+            AOA.infer()
+            if AOA.aoa is not None:
+                print("AOA = %.5f" % (AOA.aoa[0][0]))
 
-        rospy.spin()
+            # GUI Display
+            #AOA.update()
+
+            elapsed_t = time.time() - start_t
+            print("Inference Latency = %.4f" % elapsed_t)
+
+
+
+
+
+    rospy.spin()
 
     ### END QtApp ####
-    pg.QtGui.QApplication.exec_()  # you MUST put this at the end
+    #pg.QtGui.QApplication.exec_()  # you MUST put this at the end
