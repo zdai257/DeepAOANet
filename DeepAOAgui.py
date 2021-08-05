@@ -1,5 +1,6 @@
 import os
 from os.path import join
+import signal, sys
 import argparse
 import time
 import rospy
@@ -7,8 +8,12 @@ from math import *
 import numpy as np
 from std_msgs.msg import String, Empty, Header, Float32, Float32MultiArray, MultiArrayDimension
 import pickle
+from PyQt5.Qt import *
+from pyqtgraph import PlotWidget
+from PyQt5 import QtCore
 from pyqtgraph.Qt import QtGui, QtCore
 import pyqtgraph as pg
+from GUItest import Window
 import keras
 from keras import backend as K
 
@@ -19,6 +24,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 class DeepAOANet(object):
     def __init__(self):
+
         self.aoa = None
         self.data = None
         self.rdy_flag = False
@@ -122,10 +128,39 @@ class DeepAOANet(object):
 
 
 if __name__ == "__main__":
+
+    # PyQt5 Program fixed writing
+    app = QApplication(sys.argv)
+
+    signal.signal(signal.SIGINT, lambda *a: app.quit())
+    app.startTimer(200)
+
+    # Instantiate and display the window bound to the drawing control
     AOA = DeepAOANet()
+
+    # Window
+    win = pg.GraphicsWindow(title="AOA Spatial Power Spectrum")
+    p = win.addPlot(title="Realtime plot")  # creates empty space for the plot in the window
+    envelope = p.plot()  # create an empty "plot" (a curve to plot)
 
     rospy.init_node('DeepAOAgui', anonymous=True)
     rospy.Subscriber('/kerberos/r', Float32MultiArray, AOA.callback)
+
+
+    # Realtime data plot. Each time this function is called, the data display is updated
+    def update():
+        global envelope, AOA
+
+        #Xm = np.random.normal(size=141)
+        Xm = np.zeros(141, dtype='float32')
+
+        xm = round(AOA.aoa[0][0][0, 0] * 140 - 70)
+        Xm[xm] = 1.
+
+        envelope.setData(Xm)  # set the curve with this data
+
+        QApplication.processEvents()  # you MUST process the plot now
+
 
     while not rospy.is_shutdown():
         if AOA.data_ready():
@@ -134,19 +169,21 @@ if __name__ == "__main__":
             print("\nStart Infer")
             AOA.infer()
             if AOA.aoa is not None:
+
                 print("AOA = %.5f" % (AOA.aoa[0][0]))
 
-            # GUI Display
-            #AOA.update()
+                # GUI Display
+                update()
 
             elapsed_t = time.time() - start_t
             print("Inference Latency = %.4f" % elapsed_t)
 
 
-
-
-
-    rospy.spin()
+    #rospy.spin()
 
     ### END QtApp ####
-    #pg.QtGui.QApplication.exec_()  # you MUST put this at the end
+    QApplication.exec_()  # you MUST put this at the end
+    # PyQt5 Program fixed writing
+    app.exec_()
+    sys.exit(app.exec_())
+
