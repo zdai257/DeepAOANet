@@ -26,6 +26,7 @@ class DeepAOANet(object):
     def __init__(self):
 
         self.aoa = None
+        self.aoa_is_signal = False
         self.data = None
         self.rdy_flag = False
         self.inp = {0: None, -1: None, -2: None}
@@ -114,11 +115,15 @@ class DeepAOANet(object):
         b = np.array(b_lst)
         z = b / np.linalg.norm(b)
 
-        # Buffer previous 'z' to make Time Series
-        # ALSO Filter out Noises!
-
         self.data = z
 
+        # Filter out Noises!
+        field_data2 = np.linalg.norm(R[0, 1, :])
+        if field_data2 > 1e-05:
+            self.aoa_is_signal = True
+        else:
+            self.aoa_is_signal = False
+        
         # Circular buffer
         self.inp[-2] = self.inp[-1]
         self.inp[-1] = self.inp[0]
@@ -173,6 +178,7 @@ if __name__ == "__main__":
                 print("AOA = %.5f" % (AOA.aoa[0][0]))
 
                 # GUI Display
+                #if AOA.aoa_is_signal:
                 update()
 
             elapsed_t = time.time() - start_t
