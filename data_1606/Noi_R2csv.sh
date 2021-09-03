@@ -1,6 +1,6 @@
 #!/bin/bash
-END=5
-for ((i=2;i<=END;i++)); do
+END=14
+for ((i=10;i<=END;i++)); do
     for bagfile in "noisy$i"/*.bag; do
         echo $bagfile
         csvname="${bagfile%.*}"

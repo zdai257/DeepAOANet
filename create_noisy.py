@@ -21,8 +21,10 @@ if args.mean is not None:
 else:
     gauss_mean = 0.0
 
+# Specify AWGN Sigma!
+#gauss_sigma_dict = {'1e_5': 1e-5, '5e_5': 5e-5, '1e_4': 1e-4, '5e_4': 5e-4}
+gauss_sigma_dict = {'1e_3': 1e-3, '2e_3': 2e-3, '3e_3': 3e-3, '4e_3': 4e-3, '5e_3': 5e-3}
 
-gauss_sigma_dict = {'1e_5': 1e-5, '5e_5': 5e-5, '1e_4': 1e-4, '5e_4': 5e-4}
 print("Sigma of AWGN equals = ", gauss_sigma_dict.keys())
 
 
