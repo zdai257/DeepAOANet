@@ -2,30 +2,30 @@ import os
 from os.path import join
 import argparse
 import rospy
+import math
+from math import e
 from math import *
 import numpy as np
 from std_msgs.msg import String, Empty, Header, Float32, Float32MultiArray, MultiArrayDimension
 from pyargus import directionEstimation as de
 
 
-parser = argparse.ArgumentParser(description='Specify ROS create_noisy params')
-parser.add_argument('--sigma', type=str, required=False, help='Specify SIGMA of AWGN to IQ_samples')
-parser.add_argument('--mean', type=str, required=False, help='Specify MEAN of AWGN to IQ_samples')
+parser = argparse.ArgumentParser(description='Specify ROS create_phaser params')
+parser.add_argument('--theta', type=str, required=True, help='Specify thata of impinging signal')
+parser.add_argument('--inverse', type=bool, required=False, help='Specify order of antenna array')
 args = parser.parse_args()
-if args.sigma is not None:
-    gauss_sigma = float(args.sigma)
+theta = float(args.theta)
+if args.inverse is not None:
+    inverse = args.inverse
 else:
-    gauss_sigma = 1e-5
-if args.mean is not None:
-    gauss_mean = float(args.mean)
-else:
-    gauss_mean = 0.0
+    inverse = False
 
-# Specify AWGN Sigma!
-#gauss_sigma_dict = {'1e_5': 1e-5, '5e_5': 5e-5, '1e_4': 1e-4, '5e_4': 5e-4}
-gauss_sigma_dict = {'1e_3': 1e-3, '2e_3': 2e-3, '3e_3': 3e-3, '4e_3': 4e-3, '5e_3': 5e-3}
 
-print("Sigma of AWGN equals = ", gauss_sigma_dict.keys())
+alpha = 0.2
+# Specify Angles that generate Phase Shift!
+angle_dict = {'-4': -4, '-2': -2, '2': 2, '4': 4}
+
+print("Synthetic Angle Manipulators = ", angle_dict.keys())
 
 
 def callback(msg):
@@ -61,18 +61,31 @@ def callback(msg):
     N = msg.layout.dim[1].size
     len = M * N * 2
 
-    for idx, (key, noise_sigma) in enumerate(gauss_sigma_dict.items()):
-        noise = np.random.normal(gauss_mean, noise_sigma, len)
-        new_msg.data = msg.data + noise
+    for idx, (key, angle_val) in enumerate(angle_dict.items()):
+
+        new_msg.data = msg.data
 
         new_samples = np.asarray(new_msg.data).reshape(M, N, 2)
         data_real = new_samples[:, :, 0]
         data_imag = new_samples[:, :, 1]
         iq_samples = data_real + 1j * data_imag
 
+        new_iq_samples = iq_samples
+        theta_deg = int(theta + angle_val)
+        theta_rad = (theta + angle_val) * pi / 180
+
         # Get new R and publish
-        # SLICE iq_samples HERE!
-        new_R = de.corr_matrix_estimate(iq_samples.T, imp="fast")
+        # Introduce phase shift to iq_samples HERE!
+        for chn in range(1, 4):
+
+            # Phase Shift
+            if inverse==True:
+                phase = e ** (-1j * 2 * pi * chn * alpha * sin(theta_rad))
+            else:
+                phase = e ** (1j * 2 * pi * chn * alpha * sin(theta_rad))
+            new_iq_samples[chn] = iq_samples[chn] * phase
+
+        new_R = de.corr_matrix_estimate(new_iq_samples.T, imp="fast")
         new_R_real = new_R.real
         new_R_imag = new_R.imag
 
@@ -82,11 +95,12 @@ def callback(msg):
         pub_dict[key].publish(data)
 
 
-rospy.init_node('noisy_creator', anonymous=True)
+rospy.init_node('phaser_creator', anonymous=True)
 #pub = rospy.Publisher('/kerberos/newR', Float32MultiArray, queue_size=10)
 pub_dict = {}
-for idx, (key, noi) in enumerate(gauss_sigma_dict.items()):
-    pub = rospy.Publisher('/kerberos/R' + str(key), Float32MultiArray, queue_size=10)
+for idx, (key, angle_val) in enumerate(angle_dict.items()):
+    theta_deg = int(theta + angle_val)
+    pub = rospy.Publisher('/kerberos/R_deg' + str(theta_deg), Float32MultiArray, queue_size=10)
     pub_dict[key] = pub
 
 topic = '/kerberos/iq_arr'
