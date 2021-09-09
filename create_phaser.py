@@ -12,18 +12,28 @@ from pyargus import directionEstimation as de
 
 parser = argparse.ArgumentParser(description='Specify ROS create_phaser params')
 parser.add_argument('--theta', type=str, required=True, help='Specify thata of impinging signal')
-parser.add_argument('--inverse', type=bool, required=False, help='Specify order of antenna array')
+parser.add_argument('--slice', type=str, required=False, help='Specify num of slices for the IQ window')
+parser.add_argument('--inverse', type=str, required=False, help='Specify order of antenna array')
 args = parser.parse_args()
+
 theta = float(args.theta)
+if args.slice is not None:
+    slice = float(args.slice)
+else:
+    slice = 8
 if args.inverse is not None:
     inverse = args.inverse
 else:
     inverse = False
 
 
-alpha = 0.2
 # Specify Angles that generate Phase Shift!
 angle_dict = {'-4': -4, '-2': -2, '2': 2, '4': 4}
+
+window_len = 32768
+win_size = window_len//slice
+alpha = 0.2
+win_lst = range(0, window_len, win_size)
 
 print("Synthetic Angle Manipulators = ", angle_dict.keys())
 
@@ -74,25 +84,31 @@ def callback(msg):
         theta_deg = int(theta + angle_val)
         theta_rad = (theta + angle_val) * pi / 180
 
+        if inverse:
+            for i in range(4):
+                new_iq_samples[i] = iq_samples[3 - i]
+
+        new_iq_samples0 = new_iq_samples
+
         # Get new R and publish
         # Introduce phase shift to iq_samples HERE!
         for chn in range(1, 4):
-
             # Phase Shift
-            if inverse==True:
-                phase = e ** (-1j * 2 * pi * chn * alpha * sin(theta_rad))
-            else:
-                phase = e ** (1j * 2 * pi * chn * alpha * sin(theta_rad))
-            new_iq_samples[chn] = iq_samples[chn] * phase
+            phase = e ** (1j * 2 * pi * chn * alpha * sin(theta_rad))
 
-        new_R = de.corr_matrix_estimate(new_iq_samples.T, imp="fast")
-        new_R_real = new_R.real
-        new_R_imag = new_R.imag
+            new_iq_samples[chn] = new_iq_samples0[chn] * phase
 
-        data_arr = np.append(new_R_real.reshape(M0, M0, 1), new_R_imag.reshape(M0, M0, 1), axis=2)
-        data_lst = list(data_arr.ravel())
-        data.data = data_lst
-        pub_dict[key].publish(data)
+        for win_idx, win_val in enumerate(win_lst):
+            win_samples = new_iq_samples[:, win_val:win_val + win_size]
+            new_R = de.corr_matrix_estimate(win_samples.T, imp="fast")
+            new_R_real = new_R.real
+            new_R_imag = new_R.imag
+
+            data_arr = np.append(new_R_real.reshape(M0, M0, 1), new_R_imag.reshape(M0, M0, 1), axis=2)
+            data_lst = list(data_arr.ravel())
+            data.data = data_lst
+            pub_dict[key][win_idx].publish(data)
+
 
 
 rospy.init_node('phaser_creator', anonymous=True)
@@ -100,8 +116,13 @@ rospy.init_node('phaser_creator', anonymous=True)
 pub_dict = {}
 for idx, (key, angle_val) in enumerate(angle_dict.items()):
     theta_deg = int(theta + angle_val)
-    pub = rospy.Publisher('/kerberos/R_deg' + str(theta_deg), Float32MultiArray, queue_size=10)
-    pub_dict[key] = pub
+    if theta_deg<0:
+        theta_deg = 'm' + str(abs(theta_deg))
+    tmp_dict = {}
+    for win_idx, win_val in enumerate(win_lst):
+        pub = rospy.Publisher('/kerberos/R_inv' + str(win_idx) + '_' + str(theta_deg), Float32MultiArray, queue_size=10)
+        tmp_dict[win_idx] = pub
+    pub_dict[key] = tmp_dict
 
 topic = '/kerberos/iq_arr'
 rospy.Subscriber(topic, Float32MultiArray, callback)
