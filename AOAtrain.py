@@ -9,33 +9,30 @@ from keras.layers.convolutional import Conv2D, MaxPooling2D, UpSampling2D, ZeroP
 from keras.utils import np_utils, plot_model
 
 
-def build_encoder_fc(time_steps=3, feature_dim=20):
+def build_fc0(feature_dim=160, out_dim=75):
+    x = Input(shape=(feature_dim,))
+    h1 = Dense(512, activation='relu')(x)
+    h2 = Dense(1024, activation='relu')(h1)
+    h3 = Dense(512, activation='relu')(h2)
+    h4 = Dense(256, activation='relu')(h3)
+    r = Dense(out_dim, activation='softmax')(h4)
+    model = Model(inputs=x, outputs=r)
 
-    x0 = Input(shape=(time_steps, feature_dim))
-    l1 = LSTM(128, activation='relu', return_sequences=True)(x0)
-    l2 = LSTM(64, activation='relu', return_sequences=False)(l1)
+    optimizer = keras.optimizers.Adam(learning_rate=0.001, decay=1e-5)
 
-    # Build encoder_fc model
-    fc1 = Dense(256, activation='relu')(l2)
-    fc2 = Dense(512, activation='relu')(fc1)
-    fc3 = Dense(256, activation='relu')(fc2)
-    fc4 = Dense(128, activation='relu')(fc3)
-    fc_out = Dense(1, activation='sigmoid')(fc4)
+    loss_obj = keras.losses.CategoricalCrossentropy(from_logits=False)
 
-    model_encoder_fc = Model(inputs=x0, outputs=fc_out)
+    model.compile(optimizer=optimizer, loss=loss_obj)
+    model.summary()
 
-    Encoder_fc_optimizer = keras.optimizers.Adam(learning_rate=0.001, decay=1e-6)
-    model_encoder_fc.compile(optimizer=Encoder_fc_optimizer, loss='mse')
-    model_encoder_fc.summary()
-
-    return model_encoder_fc
+    return model
 
 
-def train(X_train_std, y_train_std, X_test_std, y_test_std, epochs=2, batch_size=256):
+def train(X_train_std, yhot_train, X_test_std, yhot_test, epochs=2, batch_size=256):
     # Which model?
-    model = build_encoder_fc()
+    model = build_fc0()
 
-    history = model.fit(X_train_std, y_train_std, batch_size=batch_size, epochs=epochs, \
-                                                    verbose=1, validation_data=(X_test_std, y_test_std))
+    history = model.fit(X_train_std, yhot_train, batch_size=batch_size, epochs=epochs,
+                                    verbose=1, validation_data=(X_test_std, yhot_test))
 
     return model, history
