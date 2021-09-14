@@ -7,8 +7,9 @@ import pyqtgraph as pq
 
 
 class Window(QWidget):
-    def __init__(self, data0=None):
+    def __init__(self, data0=None, spectrum_len=74*2+1):
         super().__init__()
+        self.spectrum_len = spectrum_len
         self.data2 = data0
         # Set the size
         self.resize(900, 600)
