@@ -12,12 +12,17 @@ from pyargus import directionEstimation as de
 
 parser = argparse.ArgumentParser(description='Specify ROS create_phaser params')
 parser.add_argument('--theta', type=str, required=True, help='Specify thata of impinging signal')
+parser.add_argument('--A', type=str, required=True, help='Specify Amplitude of signal scalar')
 parser.add_argument('--mean', type=str, required=False, help='Specify MEAN of AWGN to IQ_samples')
 parser.add_argument('--slice', type=str, required=False, help='Specify num of slices for the IQ window')
 parser.add_argument('--inverse', type=str, required=False, help='Specify order of antenna array')
 args = parser.parse_args()
 
 theta = float(args.theta)
+if args.A is not None:
+    A = float(args.A)
+else:
+    A = 1.0
 if args.mean is not None:
     gauss_mean = float(args.mean)
 else:
@@ -49,6 +54,7 @@ print("Slices = %d; Inverse = %s" % (slice, str(inverse)))
 
 def callback(msg):
     data = Float32MultiArray()
+    iq_data = Float32MultiArray()
 
     # Format 'data' to be publish
     M0 = 4
@@ -90,6 +96,9 @@ def callback(msg):
         # Add AWGN
         noise = np.random.normal(gauss_mean, noise_sigma, len)
         new_msg.data = msg.data + noise
+        # Publish synthetic iq_data
+        if A != 1:
+            iq_data.layout = msg.layout
 
         for idx, (key, angle_val) in enumerate(angle_dict.items()):
 
@@ -114,11 +123,25 @@ def callback(msg):
 
             # Get new R and publish
             # Introduce phase shift to iq_samples HERE!
-            for chn in range(1, 4):
+            for chn in range(0, 4):
                 # Phase Shift
                 phase = e ** (1j * 2 * pi * chn * alpha * sin(theta_rad))
 
-                new_iq_samples[chn] = new_iq_samples0[chn] * phase
+                new_iq_samples[chn] = new_iq_samples0[chn] * A * phase
+
+            # Publish synthetic iq_data
+            if angle_val == 0 and noise_sigma == 0. and A != 1:
+                angle_jump = 45  # Randomize it
+                syn_iq_samples = np.zeros(new_iq_samples0.shape)
+                # Superposition IQ samples
+                for chn in range(0, 4):
+                    # Phase Shift
+                    phase = e ** (1j * 2 * pi * chn * alpha * sin(angle_jump*pi/180))
+                    # Adding old and new IQ is WRONG!!
+                    syn_iq_samples[chn] = new_iq_samples0[chn] * (1. + A * phase)
+
+                iq_data.data = list(np.append(syn_iq_samples.real.reshape(4,window_len,1), syn_iq_samples.imag.reshape(4,window_len,1), axis=2).ravel())
+                pub_iq.publish(iq_data)
 
             R_slice = np.empty((M0, M0, 2, 0), dtype=np.float32)
             for win_idx, win_val in enumerate(win_lst):
@@ -149,6 +172,9 @@ for idx_sigma, (sigma_name, noise_sigma) in enumerate(gauss_sigma_dict.items()):
         pub = rospy.Publisher('/kerberos/R_' + theta_name + '_' + sigma_name, Float32MultiArray, queue_size=100)
         tmp_dict[idx] = pub
     pub_dict[sigma_name] = tmp_dict
+
+if A != 1:
+    pub_iq = rospy.Publisher('/kerberos/syn_iq_arr', Float32MultiArray, queue_size=1)
 
 topic = '/kerberos/iq_arr'
 rospy.Subscriber(topic, Float32MultiArray, callback)
