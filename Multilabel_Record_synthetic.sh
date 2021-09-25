@@ -22,8 +22,8 @@ for ((i=30;i<=END;i++)); do
             csvname2="${bagfile2%.*}"
             degname2="${csvname2#*_}"
             if [ "$thetaname1" == "$degname1" ] && [ "$thetaname2" == "$degname2" ]; then
-                echo $degname1
-                echo $degname2
+                echo $theta1
+                echo $theta2
                 python3 /home/zdai/repos/GPSLoRaRX/Multilabel_Create_Synthetic.py --theta1 $theta1 --theta2 $theta2 &
                 cd /home/zdai/repos/GPSLoRaRX/data_multi-${END}
                 rosbag record -O ${degname1}_multi-${degname2}.bag -e "/kerberos/R_(.*)" __name:=my_bag &
