@@ -61,6 +61,8 @@ win_lst = range(0, window_len, win_size)
 # Carrier Phase Difference
 delta_phase = np.random.uniform(0, 2*pi, len(angle_dict.keys()))
 
+IQamp_thres = 3e-3
+
 print("Synthetic Angle Manipulators = ", angle_dict.keys())
 print("Sigma of AWGN equals = ", gauss_sigma_dict.keys())
 print("Slices = %d; Inverse = %s" % (slice, str(inverse)))
@@ -143,30 +145,37 @@ def sync_callback(msg1, msg2):
                     phase = e ** (1j * 2 * pi * chn * alpha * sin(theta_rad))
                     iq_np1[chn] = iq_np1[chn] * phase
 
-                # Introduce Carrier Phase Randomizer HERE!
-                iq_np2_shifted = iq_np2 * e ** (1j * delta_phase[idx2])
+                # INSERT IQ-AMPLITUDE THRESHOLDS HERE!
+                iq1_start = np.mean(np.sqrt(iq_np1[0, :100].real**2 + iq_np1[0, :100].imag**2))
+                iq1_end = np.mean(np.sqrt(iq_np1[0, -100:].real ** 2 + iq_np1[0, -100:].imag ** 2))
+                iq2_start = np.mean(np.sqrt(iq_np2[0, :100].real ** 2 + iq_np2[0, :100].imag ** 2))
+                iq2_end = np.mean(np.sqrt(iq_np2[0, -100:].real ** 2 + iq_np2[0, -100:].imag ** 2))
+                if iq1_start>IQamp_thres and iq1_end>IQamp_thres and iq2_start>IQamp_thres and iq2_end>IQamp_thres:
 
-                # Superposition IQ1 & IQ2
-                new_iq_samples = iq_np1 + iq_np2_shifted
+                    # Introduce Carrier Phase Randomizer HERE!
+                    iq_np2_shifted = iq_np2 * e ** (1j * delta_phase[idx2])
 
-                if IQgen:
-                    iq_data.data = list(np.append(new_iq_samples.real.reshape(4, window_len, 1),
-                                                  new_iq_samples.imag.reshape(4, window_len, 1), axis=2).ravel())
-                    pub_iq.publish(iq_data)
+                    # Superposition IQ1 & IQ2
+                    new_iq_samples = iq_np1 + iq_np2_shifted
 
-                R_slice = np.empty((M0, M0, 2, 0), dtype=np.float32)
-                for win_idx, win_val in enumerate(win_lst):
-                    win_samples = new_iq_samples[:, win_val:win_val + win_size]
-                    new_R = de.corr_matrix_estimate(win_samples.T, imp="fast")
-                    new_R_real = new_R.real
-                    new_R_imag = new_R.imag
+                    if IQgen:
+                        iq_data.data = list(np.append(new_iq_samples.real.reshape(4, window_len, 1),
+                                                      new_iq_samples.imag.reshape(4, window_len, 1), axis=2).ravel())
+                        pub_iq.publish(iq_data)
 
-                    data_arr = np.append(new_R_real.reshape((M0, M0, 1)), new_R_imag.reshape((M0, M0, 1)), axis=2)
-                    R_slice = np.append(R_slice, data_arr.reshape((M0, M0, 2, 1)), axis=3)
+                    R_slice = np.empty((M0, M0, 2, 0), dtype=np.float32)
+                    for win_idx, win_val in enumerate(win_lst):
+                        win_samples = new_iq_samples[:, win_val:win_val + win_size]
+                        new_R = de.corr_matrix_estimate(win_samples.T, imp="fast")
+                        new_R_real = new_R.real
+                        new_R_imag = new_R.imag
 
-                data_lst = list(R_slice.ravel())
-                data.data = data_lst
-                pub_dict[idx2][idx].publish(data)
+                        data_arr = np.append(new_R_real.reshape((M0, M0, 1)), new_R_imag.reshape((M0, M0, 1)), axis=2)
+                        R_slice = np.append(R_slice, data_arr.reshape((M0, M0, 2, 1)), axis=3)
+
+                    data_lst = list(R_slice.ravel())
+                    data.data = data_lst
+                    pub_dict[idx2][idx].publish(data)
 
 
 rospy.init_node('Multilabel_creator', anonymous=True)

@@ -10,9 +10,9 @@ theta2=$(($arg3))
 thetaname1=$arg2
 thetaname2=$arg4
 dir1=data_0107
-dir2=data_1407
-END=31
-for ((i=31;i<=END;i++)); do
+dir2=data_0207
+END=30
+for ((i=30;i<=END;i++)); do
     cd /home/zdai/repos/GPSLoRaRX/${dir1}
     for bagfile1 in deg_*.bag; do
         csvname1="${bagfile1%.*}"
