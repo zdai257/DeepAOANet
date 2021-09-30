@@ -47,7 +47,7 @@ else:
 
 
 # Specify AWGN Sigma!
-gauss_sigma_dict = {'0e_4': 0e-4,}
+gauss_sigma = 1e-4
 
 # Specify Angles that generate Phase Shift!
 angle_dict = {'-4': -4, '-2': -2, '0': 0, '2': 2, '4': 4}
@@ -64,7 +64,7 @@ delta_phase = np.random.uniform(0, 2*pi, len(angle_dict.keys()))
 IQamp_thres = 3e-3
 
 print("Synthetic Angle Manipulators = ", angle_dict.keys())
-print("Sigma of AWGN equals = ", gauss_sigma_dict.keys())
+print("Sigma of AWGN equals = ", gauss_sigma)
 print("Slices = %d; Inverse = %s" % (slice, str(inverse)))
 print("Delta_carrier_phase = ", delta_phase)
 
@@ -113,7 +113,11 @@ def sync_callback(msg1, msg2):
     for idx2, (key2, angle_val2) in enumerate(angle_dict.items()):
         theta_rad2 = angle_val2 * pi / 180
         theta_angle2 = theta2 + angle_val2
-
+        '''
+        # Add AWGN
+        noise2 = np.random.normal(gauss_mean, gauss_sigma, len)
+        msg2.data += noise2
+        '''
         # Form IQ2 as array
         new_samples2 = np.asarray(msg2.data).reshape(M, N, 2)
         iq_np2 = new_samples2[:, :, 0] + 1j * new_samples2[:, :, 1]
@@ -128,6 +132,11 @@ def sync_callback(msg1, msg2):
 
             theta_rad = angle_val * pi / 180
             theta_angle1 = theta1 + angle_val
+            '''
+            # Add AWGN
+            noise1 = np.random.normal(gauss_mean, gauss_sigma, len)
+            msg1.data += noise1
+            '''
             if theta_angle1 != theta_angle2:
                 # Form IQ1 as array
                 new_samples1 = np.asarray(msg1.data).reshape(M, N, 2)
@@ -157,6 +166,14 @@ def sync_callback(msg1, msg2):
 
                     # Superposition IQ1 & IQ2
                     new_iq_samples = iq_np1 + iq_np2_shifted
+
+                    # Add AWGN only After the filtering!
+                    new_iq_samples1 = new_iq_samples.real + np.random.normal(gauss_mean, gauss_sigma,
+                                                                             new_iq_samples.real.shape)
+                    new_iq_samples2 = new_iq_samples.imag + np.random.normal(gauss_mean, gauss_sigma,
+                                                                             new_iq_samples.imag.shape)
+                    new_iq_samples = new_iq_samples1 + 1j * new_iq_samples2
+                    #print(new_iq_samples12.shape)
 
                     if IQgen:
                         iq_data.data = list(np.append(new_iq_samples.real.reshape(4, window_len, 1),
