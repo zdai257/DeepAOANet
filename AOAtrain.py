@@ -82,10 +82,50 @@ def build_CR0(feature_dim=128, num_classes=1, regress1=1, regress2=1):
     return model
 
 
+def build_CR1(feature_dim=(4, 4, 8), num_classes=1, regress1=1, regress2=1):
+    x = Input(shape=feature_dim)
+    c1 = Conv2D(512, kernel_size=(3, 3), padding='valid', strides=(1, 1), activation='relu')(x)
+    c2 = MaxPooling2D(pool_size=(2, 2))(c1)
+    c2 = Reshape((512,))(c2)
+    h2 = Dense(1024, activation='relu')(c2)
+    h3 = Dense(1024, activation='relu')(h2)
+    h4 = Dense(512, activation='relu')(h3)
+
+    # Num-of-signal Classifier
+    c = Dense(num_classes, activation='sigmoid', name="class_out")(h4)
+
+    # Regression of 1-signal
+    r1 = Dense(regress1, activation='sigmoid', name="regress1_out")(h4)
+
+    # Regression of 2-signal
+    r2 = Dense(regress2, activation='sigmoid', name="regress2_out")(h4)
+
+    model = Model(inputs=x, outputs=[c, r1, r2], name="deepaoanet1")
+
+    optimizer = keras.optimizers.Adam(learning_rate=0.001, decay=1e-5)
+    losses = {
+        "class_out": keras.losses.BinaryCrossentropy(from_logits=False),
+        "regress1_out": keras.losses.MeanSquaredError(),
+        "regress2_out": keras.losses.MeanSquaredError(),
+    }
+    lossWeights = {"class_out": 1.0, "regress1_out": 0.3, "regress2_out": 0.3}
+    metrics = {"class_out": 'accuracy', "regress1_out": 'mse', "regress2_out": 'mse'}
+
+    model.compile(optimizer=optimizer,
+                      loss=losses,
+                      loss_weights=lossWeights,
+                      metrics=metrics)
+    model.summary()
+
+    return model
+
+
 def train(X_train_std, yhot_train, X_test_std, yhot_test, epochs=2, batch_size=256):
     # Specify Which model?
     #model = build_fc0()
     model = build_fc1()
+    #model = build_CR0()
+    #model = build_CR1()
 
     history = model.fit(X_train_std, yhot_train, batch_size=batch_size, epochs=epochs,
                                     verbose=1, validation_data=(X_test_std, yhot_test))

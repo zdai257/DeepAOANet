@@ -31,7 +31,7 @@ field_thres = 1e-05
 
 
 ### Prepare Data from ROSBAG -> CSV -> DataFrame ###
-def load_bag(data_dir=Data_dir[0], noisy_lst=Noisy_lst[0], bag_lst=Bag_lst[0], field_thres=1e-5):
+def load_bag(data_dir=Data_dir[0], noisy_lst=Noisy_lst[0], bag_lst=Bag_lst[0], field_thres=1e-4, cast2image=False):
     with rosbag.Bag(join(data_dir, noisy_lst, bag_lst)) as bag:
         angl_val_lst = range(-74, 76, 2)
 
@@ -55,24 +55,35 @@ def load_bag(data_dir=Data_dir[0], noisy_lst=Noisy_lst[0], bag_lst=Bag_lst[0], f
 
                 data = np.asarray(msg.data).reshape((4, 4, 2, 8))
 
-                filtered_data = np.zeros((10, 2, 8))
-                k = 0
-                for i in range(4):
-                    for j in range(4):
-                        if i <= j:
-                            filtered_data[k, :, :] = data[i, j, :, :]
-                            k += 1
+                if cast2image:
+                    filtered_data = np.zeros((4, 4, 8))
 
-                # Moveaxis
-                filtered_data = np.moveaxis(filtered_data, -1, 0)
-                # print(filtered_data.shape)
+                    for i in range(4):
+                        for j in range(4):
+                            if i <= j:
+                                filtered_data[i, j, :] = data[i, j, 0, :]
+                            else:
+                                filtered_data[i, j, :] = data[i, j, 1, :]
+
+                    # Moveaxis
+                    filtered_data = np.moveaxis(filtered_data, -1, 0)
+                else:
+
+                    filtered_data = np.zeros((10, 2, 8))
+                    k = 0
+                    for i in range(4):
+                        for j in range(4):
+                            if i <= j:
+                                filtered_data[k, :, :] = data[i, j, :, :]
+                                k += 1
+
+                    # Moveaxis
+                    filtered_data = np.moveaxis(filtered_data, -1, 0)
 
                 df_data = pd.DataFrame(filtered_data.reshape((1, -1), order='C'))
-                # df_data = pd.DataFrame(data.reshape((1, -1)))
+
                 data_lst.append(df_data)
 
-                # df = pd.concat((df, df_data))
-                # df.append(pd.DataFrame(data.reshape((1, -1)), columns=col_lst), ignore_index=True)
             else:
                 continue
 
@@ -81,30 +92,45 @@ def load_bag(data_dir=Data_dir[0], noisy_lst=Noisy_lst[0], bag_lst=Bag_lst[0], f
         df['sigma'] = pd.Series(sigma_lst)
 
         # Filter noise from Signal
-        filtered_indexed = df[(abs(df[2]) >= field_thres) \
-                              & (abs(df[3]) >= field_thres) \
-                              & (abs(df[4]) >= field_thres) \
-                              & (abs(df[5]) >= field_thres) \
-                              & (abs(df[6]) >= field_thres) \
-                              & (abs(df[7]) >= field_thres) \
-                              & (abs(df[10]) >= field_thres) \
-                              & (abs(df[11]) >= field_thres) \
-                              & (abs(df[12]) >= field_thres) \
-                              & (abs(df[13]) >= field_thres) \
-                              & (abs(df[16]) >= field_thres) \
-                              & (abs(df[17]) >= field_thres) \
-                              & (abs(df[142]) >= field_thres) \
-                              & (abs(df[143]) >= field_thres) \
-                              & (abs(df[144]) >= field_thres) \
-                              & (abs(df[145]) >= field_thres) \
-                              & (abs(df[146]) >= field_thres) \
-                              & (abs(df[147]) >= field_thres) \
-                              & (abs(df[150]) >= field_thres) \
-                              & (abs(df[151]) >= field_thres) \
-                              & (abs(df[152]) >= field_thres) \
-                              & (abs(df[153]) >= field_thres) \
-                              & (abs(df[156]) >= field_thres) \
-                              & (abs(df[157]) >= field_thres)].index
+        if cast2image:
+            filtered_indexed = df[(abs(df[2]) >= field_thres) \
+                                  & (abs(df[1]) >= field_thres) \
+                                  & (abs(df[2]) >= field_thres) \
+                                  & (abs(df[3]) >= field_thres) \
+                                  & (abs(df[6]) >= field_thres) \
+                                  & (abs(df[7]) >= field_thres) \
+                                  & (abs(df[11]) >= field_thres) \
+                                  & (abs(df[113]) >= field_thres) \
+                                  & (abs(df[114]) >= field_thres) \
+                                  & (abs(df[115]) >= field_thres) \
+                                  & (abs(df[118]) >= field_thres) \
+                                  & (abs(df[119]) >= field_thres) \
+                                  & (abs(df[123]) >= field_thres)].index
+        else:
+            filtered_indexed = df[(abs(df[2]) >= field_thres) \
+                                  & (abs(df[3]) >= field_thres) \
+                                  & (abs(df[4]) >= field_thres) \
+                                  & (abs(df[5]) >= field_thres) \
+                                  & (abs(df[6]) >= field_thres) \
+                                  & (abs(df[7]) >= field_thres) \
+                                  & (abs(df[10]) >= field_thres) \
+                                  & (abs(df[11]) >= field_thres) \
+                                  & (abs(df[12]) >= field_thres) \
+                                  & (abs(df[13]) >= field_thres) \
+                                  & (abs(df[16]) >= field_thres) \
+                                  & (abs(df[17]) >= field_thres) \
+                                  & (abs(df[142]) >= field_thres) \
+                                  & (abs(df[143]) >= field_thres) \
+                                  & (abs(df[144]) >= field_thres) \
+                                  & (abs(df[145]) >= field_thres) \
+                                  & (abs(df[146]) >= field_thres) \
+                                  & (abs(df[147]) >= field_thres) \
+                                  & (abs(df[150]) >= field_thres) \
+                                  & (abs(df[151]) >= field_thres) \
+                                  & (abs(df[152]) >= field_thres) \
+                                  & (abs(df[153]) >= field_thres) \
+                                  & (abs(df[156]) >= field_thres) \
+                                  & (abs(df[157]) >= field_thres)].index
 
         filtered_df = df.iloc[filtered_indexed]
 
