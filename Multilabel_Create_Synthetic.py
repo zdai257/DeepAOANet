@@ -47,7 +47,7 @@ else:
 
 
 # Specify AWGN Sigma!
-gauss_sigma = 1e-7
+gauss_sigma = 1e-6
 
 # Specify Angles that generate Phase Shift!
 angle_dict = {'-4': -4, '-2': -2, '0': 0, '2': 2, '4': 4}

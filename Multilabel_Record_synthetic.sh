@@ -11,7 +11,7 @@ thetaname1=$arg2
 thetaname2=$arg4
 dir1=data_0207
 dir2=data_1607
-END=70
+END=71
 for ((i=END;i<=END;i++)); do
     cd /home/zdai/repos/GPSLoRaRX/${dir1}
     for bagfile1 in deg_*.bag; do
@@ -31,7 +31,7 @@ for ((i=END;i<=END;i++)); do
                 cd /home/zdai/repos/GPSLoRaRX/${dir1}
                 rosbag play -r 0.5 ${csvname1}.bag /kerberos/iq_arr:=/IQ1 &
                 cd /home/zdai/repos/GPSLoRaRX/${dir2}
-                rosbag play -r 0.5 ${csvname2}.bag /kerberos/iq_arr:=/IQ2
+                rosbag play -r 0.6 ${csvname2}.bag /kerberos/iq_arr:=/IQ2
                 sleep 6
                 rosnode kill -a
             fi
