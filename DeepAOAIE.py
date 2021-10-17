@@ -211,7 +211,7 @@ if __name__ == "__main__":
             aoa = round(AOAie.theta1, 1)
             aoa_idx = int((aoa - AOAie.ymin) / 0.1)
             Xm[aoa_idx] = 1.
-            #Xm[741] = 1.
+
 
         elif AOAie.num_of_signal == 1:
             aoa1 = round(AOAie.theta1, 1)

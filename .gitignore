@@ -8,3 +8,9 @@ data_0106/
 data_0506/
 Data/
 *log_long.csv
+testCorridor/
+testLOS/
+util/
+DeepAOAclassifier.py
+DeepAOAgui.py
+

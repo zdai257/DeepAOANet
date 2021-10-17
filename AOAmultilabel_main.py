@@ -16,7 +16,7 @@ from sklearn.preprocessing import StandardScaler, LabelEncoder, MinMaxScaler, On
 from sklearn.metrics import confusion_matrix, classification_report, \
     mean_squared_error, mean_absolute_error, accuracy_score
 from AOAtrain import train
-from AOAmain import load_bag
+from AOAsingle_main import load_bag
 
 
 ### Globals ###
@@ -63,7 +63,9 @@ def load_bag_multi(bagname, data_dir=Data_dir_multi[0], field_thres=1e-4, cast2i
                 angle1_lst.append(int(angle1) - 360)
                 angle2_lst.append(int(angle2) - 360)
 
+                # print(np.asarray(msg.data))
                 data = np.asarray(msg.data).reshape((4, 4, 2, 8))
+                print(data[:, :, 0, 0])
 
                 if cast2image:
                     filtered_data = np.zeros((4, 4, 8))
@@ -75,6 +77,7 @@ def load_bag_multi(bagname, data_dir=Data_dir_multi[0], field_thres=1e-4, cast2i
                             else:
                                 filtered_data[i, j, :] = data[i, j, 1, :]
 
+                    # print(filtered_data[:,:,0])
                     # Moveaxis
                     filtered_data = np.moveaxis(filtered_data, -1, 0)
                 else:
@@ -90,7 +93,9 @@ def load_bag_multi(bagname, data_dir=Data_dir_multi[0], field_thres=1e-4, cast2i
                     # Moveaxis
                     filtered_data = np.moveaxis(filtered_data, -1, 0)
 
+                # print(filtered_data.shape)
                 df_data = pd.DataFrame(filtered_data.reshape((1, -1), order='C'))
+                print(np.moveaxis(df_data.to_numpy().reshape((8, 4, 4)), 0, -1)[:, :, 0])
 
                 data_lst.append(df_data)
             else:
@@ -362,7 +367,7 @@ if __name__ == '__main__':
         trained_model, history = train(I_train_std, ym_train_std, I_test_std, ym_test_std, epochs=30, batch_size=512)
 
     if evaluation:
-        # ??
+
         accu, rmse = eval_model_multi(trained_model, I_val_std, ym_val_std, y_val, IsSavingModel=None)
         print(accu, rmse)
 

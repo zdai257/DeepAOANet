@@ -1,7 +1,7 @@
 import keras
 from keras.datasets import mnist
 from keras.models import Model
-from keras.layers import Input, add, LSTM, RepeatVector, TimeDistributed, Bidirectional
+from keras.layers import Input, add, LSTM, RepeatVector, TimeDistributed, Bidirectional, BatchNormalization
 from keras.layers.core import Layer, Dense, Dropout, Activation, Flatten, Reshape
 from keras import regularizers, Sequential
 from keras.regularizers import l2
@@ -70,7 +70,9 @@ def build_CR0(feature_dim=128, num_classes=1, regress1=1, regress2=1):
         "regress1_out": keras.losses.MeanSquaredError(),
         "regress2_out": keras.losses.MeanSquaredError(),
     }
-    lossWeights = {"class_out": 1.0, "regress1_out": 1.0, "regress2_out": 1.0}
+    lossWeights = {"class_out": 0.01, "regress1_out": 1.0, "regress2_out": 1.0}
+    lossWeights2 = {"class_out": 0.0001, "regress1_out": 1.0, "regress2_out": 1.0}
+
     metrics = {"class_out": 'accuracy', "regress1_out": 'mse', "regress2_out": 'mse'}
 
     model.compile(optimizer=optimizer,
@@ -84,8 +86,10 @@ def build_CR0(feature_dim=128, num_classes=1, regress1=1, regress2=1):
 
 def build_CR1(feature_dim=(4, 4, 8), num_classes=1, regress1=1, regress2=1):
     x = Input(shape=feature_dim)
-    c1 = Conv2D(512, kernel_size=(3, 3), padding='valid', strides=(1, 1), activation='relu')(x)
-    c2 = MaxPooling2D(pool_size=(2, 2))(c1)
+    c1 = Conv2D(512, kernel_size=(3, 3), padding='valid', strides=(1, 1), activation=None)(x)
+    b1 = BatchNormalization()(c1)
+    b2 = Activation("relu")(b1)
+    c2 = MaxPooling2D(pool_size=(2, 2))(b2)
     c2 = Reshape((512,))(c2)
     h2 = Dense(1024, activation='relu')(c2)
     h3 = Dense(1024, activation='relu')(h2)
@@ -108,7 +112,9 @@ def build_CR1(feature_dim=(4, 4, 8), num_classes=1, regress1=1, regress2=1):
         "regress1_out": keras.losses.MeanSquaredError(),
         "regress2_out": keras.losses.MeanSquaredError(),
     }
-    lossWeights = {"class_out": 1.0, "regress1_out": 0.3, "regress2_out": 0.3}
+    lossWeights = {"class_out": 0.01, "regress1_out": 1.0, "regress2_out": 1.0}
+    lossWeights2 = {"class_out": 0.0001, "regress1_out": 1.0, "regress2_out": 1.0}
+
     metrics = {"class_out": 'accuracy', "regress1_out": 'mse', "regress2_out": 'mse'}
 
     model.compile(optimizer=optimizer,
@@ -120,11 +126,11 @@ def build_CR1(feature_dim=(4, 4, 8), num_classes=1, regress1=1, regress2=1):
     return model
 
 
-def train(X_train_std, yhot_train, X_test_std, yhot_test, epochs=2, batch_size=256):
+def train(X_train_std, yhot_train, X_test_std, yhot_test, epochs=40, batch_size=512):
     # Specify Which model?
     #model = build_fc0()
-    model = build_fc1()
-    #model = build_CR0()
+    #model = build_fc1()
+    model = build_CR0()
     #model = build_CR1()
 
     history = model.fit(X_train_std, yhot_train, batch_size=batch_size, epochs=epochs,

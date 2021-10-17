@@ -12,7 +12,7 @@ from pyargus import directionEstimation as de
 
 parser = argparse.ArgumentParser(description='Specify ROS create_phaser params')
 parser.add_argument('--theta', type=str, required=True, help='Specify thata of impinging signal')
-parser.add_argument('--A', type=str, required=True, help='Specify Amplitude of signal scalar')
+parser.add_argument('--A', type=str, required=False, help='Specify Amplitude of signal scalar')
 parser.add_argument('--mean', type=str, required=False, help='Specify MEAN of AWGN to IQ_samples')
 parser.add_argument('--slice', type=str, required=False, help='Specify num of slices for the IQ window')
 parser.add_argument('--inverse', type=str, required=False, help='Specify order of antenna array')
@@ -38,7 +38,9 @@ else:
 
 
 # Specify AWGN Sigma!
-gauss_sigma_dict = {'0e_4': 0e-4, '5e_4': 5e-4, '7e_4': 7e-4, '9e_4': 9e-4}
+#gauss_sigma_dict = {'0e_4': 0e-4, '5e_4': 5e-4, '7e_4': 7e-4, '9e_4': 9e-4}
+gauss_sigma_dict = {'1e_1': 1e-1, '1e_2': 1e-2, '1e_3': 1e-3, '1e_4': 1e-4, '1e_5': 1e-5}
+
 # Specify Angles that generate Phase Shift!
 angle_dict = {'-4': -4, '-2': -2, '0': 0, '2': 2, '4': 4}
 
@@ -46,6 +48,8 @@ window_len = 32768
 win_size = window_len//slice
 alpha = 0.2
 win_lst = range(0, window_len, win_size)
+
+IQamp_thres = 3e-3
 
 print("Synthetic Angle Manipulators = ", angle_dict.keys())
 print("Sigma of AWGN equals = ", gauss_sigma_dict.keys())
@@ -96,66 +100,71 @@ def callback(msg):
         # Add AWGN
         noise = np.random.normal(gauss_mean, noise_sigma, len)
         new_msg.data = msg.data + noise
-        # Publish synthetic iq_data
-        if A != 1:
-            iq_data.layout = msg.layout
 
-        for idx, (key, angle_val) in enumerate(angle_dict.items()):
+        iq_np0 = np.asarray(msg.data).reshape((M, N, 2))
+        iq_np = iq_np0[:, :, 0] + 1j * iq_np0[:, :, 1]
 
-            new_msg.data = msg.data
+        # INSERT IQ-AMPLITUDE THRESHOLDS HERE!
+        iq1_start = np.mean(np.sqrt(iq_np[0, :100].real ** 2 + iq_np[0, :100].imag ** 2))
+        iq1_end = np.mean(np.sqrt(iq_np[0, -100:].real ** 2 + iq_np[0, -100:].imag ** 2))
+        if iq1_start > IQamp_thres and iq1_end > IQamp_thres:
 
-            new_samples = np.asarray(new_msg.data).reshape(M, N, 2)
-            data_real = new_samples[:, :, 0]
-            data_imag = new_samples[:, :, 1]
-            iq_samples = data_real + 1j * data_imag
+            for idx, (key, angle_val) in enumerate(angle_dict.items()):
 
-            new_iq_samples = iq_samples
+                new_samples = np.asarray(new_msg.data).reshape(M, N, 2)  #reshape(())
+                data_real = new_samples[:, :, 0]
+                data_imag = new_samples[:, :, 1]
+                iq_samples = data_real + 1j * data_imag
 
-            theta_deg = int(theta + angle_val)
-            # Should be Delta_theta HERE!
-            theta_rad = angle_val * pi / 180
+                new_iq_samples = iq_samples
 
-            if inverse:
-                for i in range(4):
-                    new_iq_samples[i] = iq_samples[3 - i]
+                theta_deg = int(theta + angle_val)
+                # Should be Delta_theta HERE!
+                theta_rad = angle_val * pi / 180
 
-            new_iq_samples0 = new_iq_samples
+                if inverse:
+                    for i in range(4):
+                        new_iq_samples[i] = iq_samples[3 - i]
 
-            # Get new R and publish
-            # Introduce phase shift to iq_samples HERE!
-            for chn in range(0, 4):
-                # Phase Shift
-                phase = e ** (1j * 2 * pi * chn * alpha * sin(theta_rad))
+                new_iq_samples0 = new_iq_samples
 
-                new_iq_samples[chn] = new_iq_samples0[chn] * A * phase
-
-            # Publish synthetic iq_data
-            if angle_val == 0 and noise_sigma == 0. and A != 1:
-                angle_jump = 45  # Randomize it
-                syn_iq_samples = np.zeros(new_iq_samples0.shape)
-                # Superposition IQ samples
+                # Get new R and publish
+                # Introduce phase shift to iq_samples HERE!
                 for chn in range(0, 4):
                     # Phase Shift
-                    phase = e ** (1j * 2 * pi * chn * alpha * sin(angle_jump*pi/180))
-                    # Adding old and new IQ is WRONG!!
-                    syn_iq_samples[chn] = new_iq_samples0[chn] * (1. + A * phase)
+                    phase = e ** (1j * 2 * pi * chn * alpha * sin(theta_rad))
 
-                iq_data.data = list(np.append(syn_iq_samples.real.reshape(4,window_len,1), syn_iq_samples.imag.reshape(4,window_len,1), axis=2).ravel())
-                pub_iq.publish(iq_data)
+                    new_iq_samples[chn] = new_iq_samples0[chn] * A * phase
 
-            R_slice = np.empty((M0, M0, 2, 0), dtype=np.float32)
-            for win_idx, win_val in enumerate(win_lst):
-                win_samples = new_iq_samples[:, win_val:win_val + win_size]
-                new_R = de.corr_matrix_estimate(win_samples.T, imp="fast")
-                new_R_real = new_R.real
-                new_R_imag = new_R.imag
+                '''
+                # Publish synthetic iq_data
+                if angle_val == 0 and noise_sigma == 0. and A != 1:
+                    angle_jump = 45  # Randomize it
+                    syn_iq_samples = np.zeros(new_iq_samples0.shape)
+                    # Superposition IQ samples
+                    for chn in range(0, 4):
+                        # Phase Shift
+                        phase = e ** (1j * 2 * pi * chn * alpha * sin(angle_jump*pi/180))
+                        # Adding old and new IQ is WRONG!!
+                        syn_iq_samples[chn] = new_iq_samples0[chn] * (1. + A * phase)
 
-                data_arr = np.append(new_R_real.reshape((M0, M0, 1)), new_R_imag.reshape((M0, M0, 1)), axis=2)
-                R_slice = np.append(R_slice, data_arr.reshape((M0, M0, 2, 1)), axis=3)
+                    iq_data.data = list(np.append(syn_iq_samples.real.reshape(4,window_len,1), syn_iq_samples.imag.reshape(4,window_len,1), axis=2).ravel())
+                    pub_iq.publish(iq_data)
+                '''
 
-            data_lst = list(R_slice.ravel())
-            data.data = data_lst
-            pub_dict[sigma_name][idx].publish(data)
+                R_slice = np.empty((M0, M0, 2, 0), dtype=np.float32)
+                for win_idx, win_val in enumerate(win_lst):
+                    win_samples = new_iq_samples[:, win_val:win_val + win_size]
+                    new_R = de.corr_matrix_estimate(win_samples.T, imp="fast")
+                    new_R_real = new_R.real
+                    new_R_imag = new_R.imag
+
+                    data_arr = np.append(new_R_real.reshape((M0, M0, 1)), new_R_imag.reshape((M0, M0, 1)), axis=2)
+                    R_slice = np.append(R_slice, data_arr.reshape((M0, M0, 2, 1)), axis=3)
+
+                data_lst = list(R_slice.ravel())
+                data.data = data_lst
+                pub_dict[sigma_name][idx].publish(data)
 
 
 
