@@ -1,6 +1,7 @@
 __pycache__/
 .ipynb_checkpoints/
 *.bag
+*.bag.active
 checkpoints/
 dataset1/
 dataset2/
