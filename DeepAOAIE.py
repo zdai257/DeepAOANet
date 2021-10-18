@@ -13,7 +13,7 @@ from pyqtgraph import PlotWidget
 from PyQt5 import QtCore
 from pyqtgraph.Qt import QtGui, QtCore
 import pyqtgraph as pg
-from GUItest import Window
+from util.GUItest import Window
 from pyargus import directionEstimation as de
 
 import tensorflow as tf
@@ -41,7 +41,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 
 class DeepAOAIE(object):
-    def __init__(self, pkl_filename="model_cr0.pkl", cast2image=True):
+    def __init__(self, model_name='FC', cast2image=True):
 
         #self.aoa = None
         self.aoa_is_signal = False
@@ -58,7 +58,16 @@ class DeepAOAIE(object):
         self.win_size = int(self.N / 8)
         self.win_lst = range(0, self.N, self.win_size)
         self.cast2image = cast2image
-        self.pkl_filename = pkl_filename
+
+        self.model_name = model_name
+        self.timing = np.empty(0)
+
+        if self.model_name == 'FC':
+            self.pkl_filename = 'model_cr0.pkl'
+        elif self.model_name == 'CNN':
+            self.pkl_filename = 'model_cr1.pkl'
+        else:
+            raise ValueError('No such model!')
 
         with open(join('checkpoints', self.pkl_filename), 'rb') as a_file:
             model = pickle.load(a_file)
@@ -71,8 +80,16 @@ class DeepAOAIE(object):
     def infer(self):
 
         if self.input_data is not None:
+            start_t = time.time()
+            # Inference
+            print("\nStart Infer")
+
             pred = self.sess.run([self.model.outputs],
                                  feed_dict={self.model.inputs[0]: self.input_data})
+
+            elapsed_t = time.time() - start_t
+            print("Inference Latency = %.4f" % elapsed_t)
+            self.timing = np.append(self.timing, elapsed_t)
 
             # Output: a List of 3 np.array, val of which equals array[0, 0]
             print(pred)
@@ -153,6 +170,10 @@ class DeepAOAIE(object):
 
             self.input_data = sscaler.transform(b).reshape((1, -1))
 
+            if self.model_name == 'CNN':
+                self.input_data = self.input_data.reshape((1, 8, 4, 4))
+                self.input_data = np.moveaxis(self.input_data, 1, -1)
+
         else:
             self.input_data = None
             self.theta1, self.theta2 = None, None
@@ -170,7 +191,7 @@ if __name__ == "__main__":
     app.startTimer(200)
 
     # Instantiate and display the window bound to the drawing control
-    AOAie = DeepAOAIE()
+    AOAie = DeepAOAIE(model_name='CNN')
 
     # Window
     win = pg.GraphicsWindow(title="AOA Spatial Power Spectrum")
@@ -230,15 +251,18 @@ if __name__ == "__main__":
 
     while not rospy.is_shutdown():
         if AOAie.data_ready():
+            '''
             start_t = time.time()
             # Inference
             print("\nStart Infer")
-
+            '''
             AOAie.infer()
 
+            np.save(join('doc', 'Timing_' + AOAie.model_name + '.npy'), AOAie.timing)
+            '''
             elapsed_t = time.time() - start_t
             print("Inference Latency = %.4f" % elapsed_t)
-
+            '''
             # GUI Display
             update()
 
