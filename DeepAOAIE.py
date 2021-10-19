@@ -8,14 +8,14 @@ from math import *
 import numpy as np
 from std_msgs.msg import String, Empty, Header, Float32, Float32MultiArray, MultiArrayDimension
 import pickle
-from PyQt5.Qt import *
-from pyqtgraph import PlotWidget
-from PyQt5 import QtCore
-from pyqtgraph.Qt import QtGui, QtCore
-import pyqtgraph as pg
-from util.GUItest import Window
+#from PyQt5.Qt import *
+#from pyqtgraph import PlotWidget
+#from PyQt5 import QtCore
+#from pyqtgraph.Qt import QtGui, QtCore
+#import pyqtgraph as pg
+#from util.GUItest import Window
 from pyargus import directionEstimation as de
-
+'''
 import tensorflow as tf
 gpus = tf.config.experimental.list_physical_devices('GPU')
 if gpus:
@@ -29,7 +29,7 @@ if gpus:
     except RuntimeError as e:
         # Virtual devices must be set before GPUs have been initialized
         print(e)
-
+'''
 import keras
 from keras import backend as K
 
@@ -63,14 +63,19 @@ class DeepAOAIE(object):
         self.timing = np.empty(0)
 
         if self.model_name == 'FC':
-            self.pkl_filename = 'model_cr0.pkl'
+            #self.pkl_filename = 'model_cr0.pkl'
+            self.pkl_filename = 'model_cr0.h5'
         elif self.model_name == 'CNN':
-            self.pkl_filename = 'model_cr1.pkl'
+            #self.pkl_filename = 'model_cr1.pkl'
+            self.pkl_filename = 'model_cr1.h5'
         else:
             raise ValueError('No such model!')
 
+        '''
         with open(join('checkpoints', self.pkl_filename), 'rb') as a_file:
             model = pickle.load(a_file)
+        '''
+        model = keras.models.load_model(join('checkpoints', self.pkl_filename))
         model.summary()
 
         self.model = model
@@ -183,16 +188,16 @@ class DeepAOAIE(object):
 
 
 if __name__ == "__main__":
-
+    '''
     # PyQt5 Program fixed writing
     app = QApplication(sys.argv)
 
     signal.signal(signal.SIGINT, lambda *a: app.quit())
     app.startTimer(200)
-
+    '''
     # Instantiate and display the window bound to the drawing control
     AOAie = DeepAOAIE(model_name='CNN')
-
+    '''
     # Window
     win = pg.GraphicsWindow(title="AOA Spatial Power Spectrum")
     #pg.setConfigOption('background', 'w')
@@ -216,11 +221,11 @@ if __name__ == "__main__":
     vb = p.getViewBox()
     #vb.setForegroundColor((255, 255, 255))
     vb.setBackgroundColor((255, 255, 255))
-
+    
     rospy.init_node('DeepAOAIE', anonymous=True)
     rospy.Subscriber('/kerberos/iq_arr', Float32MultiArray, AOAie.callback)
 
-
+    
     # Realtime data plot. Each time this function is called, the data display is updated
     def update():
         global envelope, AOAie
@@ -247,10 +252,15 @@ if __name__ == "__main__":
         envelope.setData(Xm)  # set the curve with this data
 
         QApplication.processEvents()  # you MUST process the plot now
+    '''
+    i = 0
+    while i < 1000:
+        if AOAie.model_name == 'FC':
+            AOAie.input_data = np.random.normal(loc=0., scale=0.2, size=(1, 128))
+        elif AOAie.model_name == 'CNN':
+            AOAie.input_data = np.random.normal(loc=0., scale=0.2, size=(1, 4, 4, 8))
 
-
-    while not rospy.is_shutdown():
-        if AOAie.data_ready():
+        if 1:  #AOAie.data_ready():
             '''
             start_t = time.time()
             # Inference
@@ -258,21 +268,23 @@ if __name__ == "__main__":
             '''
             AOAie.infer()
 
-            np.save(join('doc', 'Timing_' + AOAie.model_name + '.npy'), AOAie.timing)
+            np.save(join('doc', 'Timing_' + AOAie.model_name + '-jetson.npy'), AOAie.timing)
             '''
             elapsed_t = time.time() - start_t
             print("Inference Latency = %.4f" % elapsed_t)
-            '''
+            
             # GUI Display
             update()
+            '''
+            i += 1
 
 
 
     # rospy.spin()
-
+    '''
     ### END QtApp ####
     QApplication.exec_()  # you MUST put this at the end
     # PyQt5 Program fixed writing
     app.exec_()
     sys.exit(app.exec_())
-
+    '''
