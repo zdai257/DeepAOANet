@@ -36,8 +36,16 @@ from keras import backend as K
 os.environ['KERAS_BACKEND'] = 'tensorflow'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-
 # K.set_learning_phase(0)
+
+parser = argparse.ArgumentParser(description='Specify DeepAOAIE params')
+parser.add_argument('--model', type=str, required=False, help='Specify Model Type FC or CNN')
+args = parser.parse_args()
+
+if args.model is not None:
+    model_type = str(args.model)
+else:
+    model_type = 'FC'
 
 
 class DeepAOAIE(object):
@@ -63,14 +71,17 @@ class DeepAOAIE(object):
         self.timing = np.empty(0)
 
         if self.model_name == 'FC':
-            self.pkl_filename = 'model_cr0.pkl'
+            self.pkl_filename = 'model_cr01'
         elif self.model_name == 'CNN':
-            self.pkl_filename = 'model_cr1.pkl'
+            self.pkl_filename = 'model_cr11'
         else:
             raise ValueError('No such model!')
 
+        '''
         with open(join('checkpoints', self.pkl_filename), 'rb') as a_file:
             model = pickle.load(a_file)
+        '''
+        model = keras.models.load_model(join('checkpoints', self.pkl_filename + '.h5'))
         model.summary()
 
         self.model = model
@@ -101,8 +112,8 @@ class DeepAOAIE(object):
             print(self.num_of_signal)
             print(self.theta1, self.theta2)
 
-        else:
-            print("Detect Noise!")
+        #else:
+        #    print("Detect Noise!")
 
 
     def data_ready(self):
@@ -191,7 +202,7 @@ if __name__ == "__main__":
     app.startTimer(200)
 
     # Instantiate and display the window bound to the drawing control
-    AOAie = DeepAOAIE(model_name='CNN')
+    AOAie = DeepAOAIE(model_name=model_type)
 
     # Window
     win = pg.GraphicsWindow(title="AOA Spatial Power Spectrum")
@@ -225,7 +236,7 @@ if __name__ == "__main__":
     def update():
         global envelope, AOAie
 
-        Xm = np.zeros(1481, dtype='float32')
+        Xm = np.random.normal(loc=0.05, scale=0.001, size=1481)
 
 
         if AOAie.num_of_signal == 0:
@@ -257,8 +268,8 @@ if __name__ == "__main__":
             print("\nStart Infer")
             '''
             AOAie.infer()
-
-            np.save(join('doc', 'Timing_' + AOAie.model_name + '.npy'), AOAie.timing)
+            # Saving Elapsed Times
+            #np.save(join('doc', 'Timing_' + AOAie.model_name + '.npy'), AOAie.timing)
             '''
             elapsed_t = time.time() - start_t
             print("Inference Latency = %.4f" % elapsed_t)
