@@ -194,16 +194,17 @@ class DeepAOAIE(object):
 
 
 if __name__ == "__main__":
-
+    '''
     # PyQt5 Program fixed writing
     app = QApplication(sys.argv)
 
     signal.signal(signal.SIGINT, lambda *a: app.quit())
     app.startTimer(200)
-
+    '''
     # Instantiate and display the window bound to the drawing control
     AOAie = DeepAOAIE(model_name=model_type)
 
+    '''
     # Window
     win = pg.GraphicsWindow(title="AOA Spatial Power Spectrum")
     #pg.setConfigOption('background', 'w')
@@ -227,11 +228,11 @@ if __name__ == "__main__":
     vb = p.getViewBox()
     #vb.setForegroundColor((255, 255, 255))
     vb.setBackgroundColor((255, 255, 255))
-
+    
     rospy.init_node('DeepAOAIE', anonymous=True)
     rospy.Subscriber('/kerberos/iq_arr', Float32MultiArray, AOAie.callback)
 
-
+    
     # Realtime data plot. Each time this function is called, the data display is updated
     def update():
         global envelope, AOAie
@@ -258,32 +259,40 @@ if __name__ == "__main__":
         envelope.setData(Xm)  # set the curve with this data
 
         QApplication.processEvents()  # you MUST process the plot now
+    '''
+    i = 0
+    while i < 1000:
+        if AOAie.model_name == 'FC':
+            AOAie.input_data = np.random.normal(loc=0., scale=0.2, size=(1, 128))
+        elif AOAie.model_name == 'CNN':
+            AOAie.input_data = np.random.normal(loc=0., scale=0.2, size=(1, 4, 4, 8))
 
-
-    while not rospy.is_shutdown():
-        if AOAie.data_ready():
+        if 1:  #AOAie.data_ready():
             '''
             start_t = time.time()
             # Inference
             print("\nStart Infer")
             '''
             AOAie.infer()
+
             # Saving Elapsed Times
             #np.save(join('doc', 'Timing_' + AOAie.model_name + '.npy'), AOAie.timing)
             '''
             elapsed_t = time.time() - start_t
             print("Inference Latency = %.4f" % elapsed_t)
-            '''
+            
             # GUI Display
             update()
+            '''
+            i += 1
 
 
 
     # rospy.spin()
-
+    '''
     ### END QtApp ####
     QApplication.exec_()  # you MUST put this at the end
     # PyQt5 Program fixed writing
     app.exec_()
     sys.exit(app.exec_())
-
+    '''
