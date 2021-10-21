@@ -49,7 +49,7 @@ else:
 
 
 class DeepAOAIE(object):
-    def __init__(self, model_name='FC', cast2image=True):
+    def __init__(self, model_name='FC', cast2image=True, IsMoveAxis=False):
 
         #self.aoa = None
         self.aoa_is_signal = False
@@ -66,6 +66,7 @@ class DeepAOAIE(object):
         self.win_size = int(self.N / 8)
         self.win_lst = range(0, self.N, self.win_size)
         self.cast2image = cast2image
+        self.IsMoveAxis = IsMoveAxis
 
         self.model_name = model_name
         self.timing = np.empty(0)
@@ -160,8 +161,9 @@ class DeepAOAIE(object):
                             filtered_data[i, j, :] = R_slice[i, j, 0, :]
                         else:
                             filtered_data[i, j, :] = R_slice[i, j, 1, :]
-                # Moveaxis
-                filtered_data = np.moveaxis(filtered_data, -1, 0)
+                if self.IsMoveAxis:
+                    filtered_data = np.moveaxis(filtered_data, -1, 0)
+
             else:
                 filtered_data = np.zeros((10, 2, 8))
                 k = 0
@@ -170,20 +172,24 @@ class DeepAOAIE(object):
                         if i <= j:
                             filtered_data[k, :, :] = R_slice[i, j, :, :]
                             k += 1
-                filtered_data = np.moveaxis(filtered_data, -1, 0)
+                if self.IsMoveAxis:
+                    filtered_data = np.moveaxis(filtered_data, -1, 0)
 
             # Input Vec
             b = filtered_data.reshape((1, -1), order='C')
 
             # Normalization
-            with open(join('checkpoints', 'StandardScaler.pkl'), 'rb') as a_file:
+            with open(join('checkpoints', 'StandardScaler-originaxis.pkl'), 'rb') as a_file:
                 sscaler = pickle.load(a_file)
 
             self.input_data = sscaler.transform(b).reshape((1, -1))
 
             if self.model_name == 'CNN':
-                self.input_data = self.input_data.reshape((1, 8, 4, 4))
-                self.input_data = np.moveaxis(self.input_data, 1, -1)
+                if self.IsMoveAxis:
+                    self.input_data = self.input_data.reshape((1, 8, 4, 4))
+                    self.input_data = np.moveaxis(self.input_data, 1, -1)
+                else:
+                    self.input_data = self.input_data.reshape((1, 4, 4, 8))
 
         else:
             self.input_data = None
@@ -194,17 +200,16 @@ class DeepAOAIE(object):
 
 
 if __name__ == "__main__":
-    '''
+
     # PyQt5 Program fixed writing
     app = QApplication(sys.argv)
 
     signal.signal(signal.SIGINT, lambda *a: app.quit())
     app.startTimer(200)
-    '''
-    # Instantiate and display the window bound to the drawing control
-    AOAie = DeepAOAIE(model_name=model_type)
 
-    '''
+    # Instantiate and display the window bound to the drawing control
+    AOAie = DeepAOAIE(model_name=model_type, IsMoveAxis=False)
+
     # Window
     win = pg.GraphicsWindow(title="AOA Spatial Power Spectrum")
     #pg.setConfigOption('background', 'w')
@@ -237,7 +242,7 @@ if __name__ == "__main__":
     def update():
         global envelope, AOAie
 
-        Xm = np.random.normal(loc=0.05, scale=0.001, size=1481)
+        Xm = np.random.normal(loc=0.05, scale=0.005, size=1481)
 
 
         if AOAie.num_of_signal == 0:
@@ -259,40 +264,31 @@ if __name__ == "__main__":
         envelope.setData(Xm)  # set the curve with this data
 
         QApplication.processEvents()  # you MUST process the plot now
-    '''
-    i = 0
-    while i < 1000:
+
+
+    while not rospy.is_shutdown():
+        '''
         if AOAie.model_name == 'FC':
             AOAie.input_data = np.random.normal(loc=0., scale=0.2, size=(1, 128))
         elif AOAie.model_name == 'CNN':
             AOAie.input_data = np.random.normal(loc=0., scale=0.2, size=(1, 4, 4, 8))
-
-        if 1:  #AOAie.data_ready():
-            '''
-            start_t = time.time()
-            # Inference
-            print("\nStart Infer")
-            '''
+        '''
+        if AOAie.data_ready():
             AOAie.infer()
 
             # Saving Elapsed Times
             #np.save(join('doc', 'Timing_' + AOAie.model_name + '.npy'), AOAie.timing)
-            '''
-            elapsed_t = time.time() - start_t
-            print("Inference Latency = %.4f" % elapsed_t)
             
             # GUI Display
             update()
-            '''
-            i += 1
 
 
 
     # rospy.spin()
-    '''
+
     ### END QtApp ####
     QApplication.exec_()  # you MUST put this at the end
     # PyQt5 Program fixed writing
     app.exec_()
     sys.exit(app.exec_())
-    '''
+
