@@ -4,7 +4,7 @@ This project aims to providing **a data-driven method to estimating multiple AOA
 
 Benchmark performance of DeepAOANet-FC, DeepAOANet-CNN, MUSIC, and Support Vector Regression are shown below.
 
-![cdf1606](https://github.com/zdai257/GPSLoRaRX/blob/main/doc/CDF_Xx-ym3.png)
+![cdf1606](https://github.com/zdai257/GPSLoRaRX/blob/main/doc/CDF_Xx-ym4.png)
 
 Error distributions using DeepAOANet-FC and DeepAOANet-CNN are as below. It can seen DeepAOANets have a wide Field of View.
 
@@ -12,4 +12,4 @@ Error distributions using DeepAOANet-FC and DeepAOANet-CNN are as below. It can 
 
 Both DeepAOANet-FC and DeepAOANet-CNN show resilience with negative Signal-to-Noise Ratios.
 
-![scatter](https://github.com/zdai257/GPSLoRaRX/blob/main/doc/SNR.png)
+![scatter](https://github.com/zdai257/GPSLoRaRX/blob/main/doc/SNR4.png)

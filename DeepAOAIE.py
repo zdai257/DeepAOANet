@@ -40,12 +40,17 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 parser = argparse.ArgumentParser(description='Specify DeepAOAIE params')
 parser.add_argument('--model', type=str, required=False, help='Specify Model Type FC or CNN')
+parser.add_argument('--moveaxis', type=str, required=False, help='Specify If moveaxis is required in preprocessing')
 args = parser.parse_args()
 
 if args.model is not None:
     model_type = str(args.model)
 else:
     model_type = 'FC'
+if args.moveaxis is not None:
+    MoveAxis = True
+else:
+    MoveAxis = False
 
 
 class DeepAOAIE(object):
@@ -72,7 +77,7 @@ class DeepAOAIE(object):
         self.timing = np.empty(0)
 
         if self.model_name == 'FC':
-            self.pkl_filename = 'model_cr01'
+            self.pkl_filename = 'model_cr02'
         elif self.model_name == 'CNN':
             self.pkl_filename = 'model_cr11'
         else:
@@ -208,7 +213,7 @@ if __name__ == "__main__":
     app.startTimer(200)
 
     # Instantiate and display the window bound to the drawing control
-    AOAie = DeepAOAIE(model_name=model_type, IsMoveAxis=False)
+    AOAie = DeepAOAIE(model_name=model_type, IsMoveAxis=MoveAxis)
 
     # Window
     win = pg.GraphicsWindow(title="AOA Spatial Power Spectrum")
@@ -236,7 +241,15 @@ if __name__ == "__main__":
     
     rospy.init_node('DeepAOAIE', anonymous=True)
     rospy.Subscriber('/kerberos/iq_arr', Float32MultiArray, AOAie.callback)
+    aoa_pub_h = rospy.Publisher('/kerberos/aoaie', Float32MultiArray, queue_size=10)
 
+    # Define ROS pub message
+    msg = Float32MultiArray()
+    msg_dimx = MultiArrayDimension()
+    msg_dimx.label = "x"
+    msg_dimx.size = 3
+    msg_dimx.stride = 1 * 3
+    msg.layout.dim.append(msg_dimx)
     
     # Realtime data plot. Each time this function is called, the data display is updated
     def update():
@@ -278,7 +291,10 @@ if __name__ == "__main__":
 
             # Saving Elapsed Times
             #np.save(join('doc', 'Timing_' + AOAie.model_name + '.npy'), AOAie.timing)
-            
+
+            msg.data = [AOAie.num_of_signal, AOAie.theta1, AOAie.theta2]
+            aoa_pub_h.publish(msg)
+
             # GUI Display
             update()
 
