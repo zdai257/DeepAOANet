@@ -3,8 +3,8 @@
 arg1=$1
 # degree name
 arg2=$2
-END=24
-for ((i=20;i<=END;i++)); do
+END=34
+for ((i=30;i<=END;i++)); do
     theta=$(($arg1))
     thetaname=$arg2
     python3 /home/zdai/repos/GPSLoRaRX/Create_Synthetic.py --theta $theta --inverse True &

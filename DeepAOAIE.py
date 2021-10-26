@@ -77,7 +77,7 @@ class DeepAOAIE(object):
         self.timing = np.empty(0)
 
         if self.model_name == 'FC':
-            self.pkl_filename = 'model_cr02'
+            self.pkl_filename = 'model_cr06'
         elif self.model_name == 'CNN':
             self.pkl_filename = 'model_cr11'
         else:
