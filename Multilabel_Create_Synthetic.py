@@ -59,14 +59,14 @@ alpha = 0.2
 win_lst = range(0, window_len, win_size)
 
 # Carrier Phase Difference
-delta_phase = np.random.uniform(0, 2*pi, len(angle_dict.keys()))
+#delta_phase = np.random.uniform(0, 2*pi, len(angle_dict.keys()))
 
 IQamp_thres = 3e-3
 
 print("Synthetic Angle Manipulators = ", angle_dict.keys())
 print("Sigma of AWGN equals = ", gauss_sigma)
 print("Slices = %d; Inverse = %s" % (slice, str(inverse)))
-print("Delta_carrier_phase = ", delta_phase)
+#print("Delta_carrier_phase = ", delta_phase)
 
 
 def sync_callback(msg1, msg2):
@@ -162,6 +162,8 @@ def sync_callback(msg1, msg2):
                 if iq1_start>IQamp_thres and iq1_end>IQamp_thres and iq2_start>IQamp_thres and iq2_end>IQamp_thres:
 
                     # Introduce Carrier Phase Randomizer HERE!
+                    # Make delta_phase Random for Every snapshot!!
+                    delta_phase = np.random.uniform(0, 2 * pi, len(angle_dict.keys()))
                     iq_np2_shifted = iq_np2 * e ** (1j * delta_phase[idx2])
 
                     # Superposition IQ1 & IQ2

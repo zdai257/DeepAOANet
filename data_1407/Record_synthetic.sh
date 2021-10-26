@@ -7,7 +7,7 @@ END=34
 for ((i=30;i<=END;i++)); do
     theta=$(($arg1))
     thetaname=$arg2
-    python3 /home/zdai/repos/GPSLoRaRX/Create_Synthetic.py --theta $theta &
+    python3 /home/zdai/repos/DeepAOANet/Create_Synthetic.py --theta $theta &
     for bagfile in deg_*.bag; do
         csvname="${bagfile%.*}"
         degname="${csvname#*_}"

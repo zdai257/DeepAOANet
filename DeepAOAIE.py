@@ -67,7 +67,7 @@ class DeepAOAIE(object):
         self.rdy_flag = False
         self.M = 4
         self.N = 32768
-        self.IQamp_thres = 3e-3
+        self.IQamp_thres = 3e-4
         self.win_size = int(self.N / 8)
         self.win_lst = range(0, self.N, self.win_size)
         self.cast2image = cast2image
@@ -79,7 +79,7 @@ class DeepAOAIE(object):
         if self.model_name == 'FC':
             self.pkl_filename = 'model_cr06'
         elif self.model_name == 'CNN':
-            self.pkl_filename = 'model_cr11'
+            self.pkl_filename = 'model_cr16'
         else:
             raise ValueError('No such model!')
 
