@@ -121,6 +121,7 @@ def callback(msg):
                 new_iq_samples = iq_samples
 
                 theta_deg = int(theta + angle_val)
+                theta_abs_rad = theta_deg * pi / 180
                 # Should be Delta_theta HERE!
                 theta_rad = angle_val * pi / 180
 
@@ -134,7 +135,8 @@ def callback(msg):
                 # Introduce phase shift to iq_samples HERE!
                 for chn in range(0, 4):
                     # Phase Shift
-                    phase = e ** (1j * 2 * pi * chn * alpha * sin(theta_rad))
+                    #phase = e ** (1j * 2 * pi * chn * alpha * sin(theta_rad))
+                    phase = e ** (1j * chn * alpha * (sin(theta_abs_rad) - sin(theta_abs_rad + theta_rad)))
 
                     new_iq_samples[chn] = new_iq_samples0[chn] * A * phase
 

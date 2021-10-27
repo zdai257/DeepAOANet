@@ -77,9 +77,9 @@ class DeepAOAIE(object):
         self.timing = np.empty(0)
 
         if self.model_name == 'FC':
-            self.pkl_filename = 'model_cr06'
+            self.pkl_filename = 'model_cr08'
         elif self.model_name == 'CNN':
-            self.pkl_filename = 'model_cr16'
+            self.pkl_filename = 'model_cr18'
         else:
             raise ValueError('No such model!')
 
@@ -184,7 +184,7 @@ class DeepAOAIE(object):
             b = filtered_data.reshape((1, -1), order='C')
 
             # Normalization
-            with open(join('checkpoints', 'StandardScaler-originaxis.pkl'), 'rb') as a_file:
+            with open(join('checkpoints', 'StandardScaler-Iraw.pkl'), 'rb') as a_file:
                 sscaler = pickle.load(a_file)
 
             self.input_data = sscaler.transform(b).reshape((1, -1))

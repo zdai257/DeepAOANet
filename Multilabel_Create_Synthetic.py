@@ -113,6 +113,7 @@ def sync_callback(msg1, msg2):
     for idx2, (key2, angle_val2) in enumerate(angle_dict.items()):
         theta_rad2 = angle_val2 * pi / 180
         theta_angle2 = theta2 + angle_val2
+        theta_abs_angle2 = theta_angle2 * pi / 180
         '''
         # Add AWGN
         noise2 = np.random.normal(gauss_mean, gauss_sigma, len)
@@ -125,13 +126,15 @@ def sync_callback(msg1, msg2):
         # Introduce phase shift to different CHN of iq_samples HERE!
         for chn in range(0, 4):
             # Phase Shift
-            phase2 = e ** (1j * 2 * pi * chn * alpha * sin(theta_rad2))
+            #phase2 = e ** (1j * 2 * pi * chn * alpha * sin(theta_rad2))
+            phase2 = e ** (1j * chn * alpha * (sin(theta2 * pi / 180) - sin(theta_abs_angle2)))
             iq_np2[chn] = iq_np2[chn] * phase2
 
         for idx, (key, angle_val) in enumerate(angle_dict.items()):
 
             theta_rad = angle_val * pi / 180
             theta_angle1 = theta1 + angle_val
+            theta_abs_angle1 = theta_angle1 * pi / 180
             '''
             # Add AWGN
             noise1 = np.random.normal(gauss_mean, gauss_sigma, len)
@@ -151,7 +154,8 @@ def sync_callback(msg1, msg2):
                 # Introduce phase shift to different CHN of iq_samples HERE!
                 for chn in range(0, 4):
                     # Phase Shift
-                    phase = e ** (1j * 2 * pi * chn * alpha * sin(theta_rad))
+                    #phase = e ** (1j * 2 * pi * chn * alpha * sin(theta_rad))
+                    phase = e ** (1j * chn * alpha * (sin(theta1 * pi / 180) - sin(theta_abs_angle1)))
                     iq_np1[chn] = iq_np1[chn] * phase
 
                 # INSERT IQ-AMPLITUDE THRESHOLDS HERE!
@@ -162,9 +166,11 @@ def sync_callback(msg1, msg2):
                 if iq1_start>IQamp_thres and iq1_end>IQamp_thres and iq2_start>IQamp_thres and iq2_end>IQamp_thres:
 
                     # Introduce Carrier Phase Randomizer HERE!
-                    # Make delta_phase Random for Every snapshot!!
-                    delta_phase = np.random.uniform(0, 2 * pi, len(angle_dict.keys()))
-                    iq_np2_shifted = iq_np2 * e ** (1j * delta_phase[idx2])
+                    # Make delta_phase Random for both IQ1&2 for Every snapshot!!
+                    delta_phase = np.random.uniform(0, 2 * pi)
+                    iq_np2_shifted = iq_np2 * e ** (1j * delta_phase)
+                    delta_phase = np.random.uniform(0, 2 * pi)
+                    iq_np1 = iq_np1 * e ** (1j * delta_phase)
 
                     # Superposition IQ1 & IQ2
                     new_iq_samples = iq_np1 + iq_np2_shifted
