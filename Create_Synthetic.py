@@ -166,6 +166,7 @@ def callback(msg):
                     data_arr = np.append(new_R_real.reshape((M0, M0, 1)), new_R_imag.reshape((M0, M0, 1)), axis=2)
                     R_slice = np.append(R_slice, data_arr.reshape((M0, M0, 2, 1)), axis=3)
 
+                #print(R_slice[:, :, 1, 0])
                 data_lst = list(R_slice.ravel())
                 data.data = data_lst
                 pub_dict[sigma_name][idx].publish(data)

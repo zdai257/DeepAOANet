@@ -12,6 +12,7 @@ Data/
 testCorridor/
 testLOS/
 util/
+doc/
 DeepAOAclassifier.py
 DeepAOAgui.py
-
+*.ipynb

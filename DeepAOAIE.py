@@ -75,11 +75,12 @@ class DeepAOAIE(object):
 
         self.model_name = model_name
         self.timing = np.empty(0)
+        self.IEresult = np.empty((0, 3))
 
         if self.model_name == 'FC':
-            self.pkl_filename = 'model_cr08'
+            self.pkl_filename = 'model_cr09'
         elif self.model_name == 'CNN':
-            self.pkl_filename = 'model_cr18'
+            self.pkl_filename = 'model_cr19'
         else:
             raise ValueError('No such model!')
 
@@ -89,6 +90,10 @@ class DeepAOAIE(object):
         '''
         model = keras.models.load_model(join('checkpoints', self.pkl_filename + '.h5'))
         model.summary()
+
+        # Normalization
+        with open(join('checkpoints', 'StandardScaler-Iraw_norm.pkl'), 'rb') as a_file:
+            self.sscaler = pickle.load(a_file)
 
         self.model = model
         self.sess = K.get_session()
@@ -117,6 +122,8 @@ class DeepAOAIE(object):
             self.theta2 = pred[0][2][0, 0] * (self.ymax - self.ymin) + self.ymin
             print(self.num_of_signal)
             print(self.theta1, self.theta2)
+
+            self.IEresult = np.append(self.IEresult, np.asarray([self.num_of_signal, self.theta1, self.theta2]), axis=0)
 
         #else:
         #    print("Detect Noise!")
@@ -183,11 +190,11 @@ class DeepAOAIE(object):
             # Input Vec
             b = filtered_data.reshape((1, -1), order='C')
 
-            # Normalization
-            with open(join('checkpoints', 'StandardScaler-Iraw.pkl'), 'rb') as a_file:
-                sscaler = pickle.load(a_file)
+            # Normalize input vector
+            norm_val = np.linalg.norm(b, axis=1)
+            xvec = b / norm_val
 
-            self.input_data = sscaler.transform(b).reshape((1, -1))
+            self.input_data = self.sscaler.transform(xvec).reshape((1, -1))
 
             if self.model_name == 'CNN':
                 if self.IsMoveAxis:
@@ -291,6 +298,9 @@ if __name__ == "__main__":
 
             # Saving Elapsed Times
             #np.save(join('doc', 'Timing_' + AOAie.model_name + '.npy'), AOAie.timing)
+
+            # Saving Inference results
+            np.save(join('doc', 'IEresults.npy'), AOAie.IEresult)
 
             msg.data = [AOAie.num_of_signal, AOAie.theta1, AOAie.theta2]
             aoa_pub_h.publish(msg)
