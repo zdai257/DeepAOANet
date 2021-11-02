@@ -38,7 +38,9 @@ else:
 
 
 # Specify AWGN Sigma!
-gauss_sigma_dict = {'0e_4': 0e-4, '5e_4': 5e-4, '7e_4': 7e-4, '9e_4': 9e-4}
+gauss_sigma_dict = {'0e_4': 0e-4, '5e_4': 5e-6, '7e_4': 7e-6, '9e_4': 9e-6}
+#gauss_sigma_dict = {'0e_4': 0e-4, '5e_4': 5e-4, '7e_4': 7e-4, '9e_4': 9e-4}
+
 #gauss_sigma_dict = {'1e_1': 1e-1, '1e_2': 1e-2, '1e_3': 1e-3, '1e_4': 1e-4, '1e_5': 1e-5}
 #gauss_sigma_dict = {'18db': 0.063, '16db': 0.0398, '14db': 0.0251, '12db': 0.0158}
 

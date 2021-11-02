@@ -1,6 +1,6 @@
 ## DeepAOANet
 
-This project aims to providing **a data-driven method to estimating multiple AOAs from single snapshot of channel covariance matrix** using the KerberosSDR, which comprises four RTL-SDRs. The proposed DeepAOANet is found over 99% accuracy of classifying number of impinging signals, and sub-degree level of RMSE or MAE.
+This project aims to providing **a data-driven method to estimating multiple AOAs from single snapshot of channel covariance matrix** using the KerberosSDR, which comprises four RTL-SDRs. The proposed DeepAOANet is found over 99% accuracy of classifying number of impinging signals, and sub-degree level of RMSE or MAE. The training split of our dataset can be found [here](https://drive.google.com/drive/folders/1421NOSQcveTE-TpKAM6cPg3SN_vatJPQ?usp=sharing).
 
 Benchmark performance of DeepAOANet-FC, DeepAOANet-CNN, MUSIC, and Support Vector Regression are shown below.
 

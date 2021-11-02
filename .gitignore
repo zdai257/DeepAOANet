@@ -11,6 +11,8 @@ Data/
 *log_long.csv
 testCorridor/
 testLOS/
+test_runtime/
+test_vicon/
 util/
 doc/
 DeepAOAclassifier.py

@@ -9,9 +9,9 @@ theta2=$(($arg3))
 # degree name
 thetaname1=$arg2
 thetaname2=$arg4
-dir1=data_0107
-dir2=data_1407
-END=42
+dir1=data_1407
+dir2=data_1607
+END=82
 for ((i=END;i<=END;i++)); do
     cd /home/zdai/repos/DeepAOANet/${dir1}
     for bagfile1 in deg_*.bag; do
@@ -29,9 +29,9 @@ for ((i=END;i<=END;i++)); do
                 rosbag record -O ${degname1}_multi-${degname2}.bag -e "/kerberos/R_(.*)" __name:=my_bag &
                 sleep 2
                 cd /home/zdai/repos/DeepAOANet/${dir1}
-                rosbag play -r 0.6 ${csvname1}.bag /kerberos/iq_arr:=/IQ1 &
+                rosbag play -r 0.7 ${csvname1}.bag /kerberos/iq_arr:=/IQ1 &
                 cd /home/zdai/repos/DeepAOANet/${dir2}
-                rosbag play -r 0.7 ${csvname2}.bag /kerberos/iq_arr:=/IQ2
+                rosbag play -r 0.6 ${csvname2}.bag /kerberos/iq_arr:=/IQ2
                 sleep 6
                 rosnode kill -a
             fi

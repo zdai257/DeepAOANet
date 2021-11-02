@@ -1,4 +1,5 @@
 #!/bin/bash
+bash Record_synthetic.sh 0 0
 bash Record_synthetic.sh -10 m10
 bash Record_synthetic.sh -20 m20
 bash Record_synthetic.sh -30 m30

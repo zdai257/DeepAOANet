@@ -78,9 +78,9 @@ class DeepAOAIE(object):
         self.IEresult = np.empty((0, 3))
 
         if self.model_name == 'FC':
-            self.pkl_filename = 'model_cr09'
+            self.pkl_filename = 'model_deepaoanet-fc'
         elif self.model_name == 'CNN':
-            self.pkl_filename = 'model_cr19'
+            self.pkl_filename = 'model_deepaoanet-cnn'
         else:
             raise ValueError('No such model!')
 
@@ -92,7 +92,7 @@ class DeepAOAIE(object):
         model.summary()
 
         # Normalization
-        with open(join('checkpoints', 'StandardScaler-Iraw_norm.pkl'), 'rb') as a_file:
+        with open(join('checkpoints', 'StandardScaler-Inew.pkl'), 'rb') as a_file:
             self.sscaler = pickle.load(a_file)
 
         self.model = model
@@ -123,7 +123,7 @@ class DeepAOAIE(object):
             print(self.num_of_signal)
             print(self.theta1, self.theta2)
 
-            self.IEresult = np.append(self.IEresult, np.asarray([self.num_of_signal, self.theta1, self.theta2]), axis=0)
+            self.IEresult = np.vstack((self.IEresult, np.array([self.num_of_signal, self.theta1, self.theta2])))
 
         #else:
         #    print("Detect Noise!")
