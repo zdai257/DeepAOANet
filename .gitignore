@@ -14,6 +14,7 @@ testLOS/
 test_runtime/
 test_vicon/
 util/
+doc0/
 doc/
 DeepAOAclassifier.py
 DeepAOAgui.py
