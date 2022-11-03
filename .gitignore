@@ -18,3 +18,5 @@ doc0/
 DeepAOAclassifier.py
 DeepAOAgui.py
 *.ipynb
+.DS_Store
+
