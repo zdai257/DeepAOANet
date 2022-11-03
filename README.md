@@ -2,7 +2,7 @@
 
 This project aims to providing *a data-driven method to estimating multiple AoAs from single snapshot of channel covariance matrix* using the **KerberosSDR**, which comprises four RTL-SDRs. The proposed DeepAoANet is found over 99% accuracy of classifying number of impinging signals (0, 1, or 2), and sub-degree level of regression error.
 
-Our collected dataset can be found [here](https://aston.box.com/s/yvmfecgln5nkgxde7bmytgircwsnm2nf). Any question please contact Z. Dai (z.dai1@aston.ac.uk).
+Our collected dataset can be found [here](https://aston.box.com/v/deepaoanet-zdai). Any question please contact Z. Dai (z.dai1@aston.ac.uk).
 
 Please cite our journal paper as
 
